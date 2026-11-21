@@ -1,0 +1,45 @@
+name: Publish registry
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '23 8 1 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: registry-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.14.8'
+      - run: python scripts/validate_index.py --self-test --network
+      - name: Sign and verify the next index
+        env:
+          REGISTRY_SIGNING_KEY: ${{ secrets.REGISTRY_SIGNING_KEY }}
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/sign_index.py
+      - name: Publish the signed assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="index-$(python -c 'import json; print(json.load(open("dist/index.json"))["sequence"])')"
+          gh release create "$tag" dist/index.json dist/index.json.sig \
+            --target "$(git rev-parse HEAD)" --latest --title "Goodtype Addon Registry $tag" \
+            --notes "Signed first-party Goodtype addon registry snapshot."
