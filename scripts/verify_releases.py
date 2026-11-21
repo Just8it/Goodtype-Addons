@@ -10,7 +10,7 @@ from urllib.request import HTTPRedirectHandler, build_opener
 import zipfile
 
 from validate_index import (
-    ARCHIVE_LIMIT, CATALOG, ID, INDEX_LIMIT, fields, matches, parse, require,
+    ARCHIVE_LIMIT, CATALOG, ID, INDEX_LIMIT, RECOGNIZERS, fields, matches, parse, require,
 )
 
 ASSET_HOSTS = {
@@ -66,7 +66,8 @@ def verify_signature(data, signature, public_key):
 
 def verify_descriptor(addon, release, legacy):
     base, filename = release["url"].rsplit("/", 1)
-    descriptor_url = f"{base}/importer-update.json"
+    recognizer = addon["id"] in RECOGNIZERS
+    descriptor_url = f"{base}/{'recognizer' if recognizer else 'importer'}-update.json"
     try:
         data = download(descriptor_url, MANIFEST_LIMIT)
     except HTTPError as error:
@@ -91,14 +92,18 @@ def verify_descriptor(addon, release, legacy):
             and type(archive["sizeBytes"]) is int and archive["sizeBytes"] == release["size"]
             and archive["sha256"].lower() == release["sha256"].lower()
             and archive["url"] == release["url"], "descriptor does not match indexed release")
-    for key in ("sourceCommit", "decoderCommit"):
-        matches(descriptor[key], r"[0-9a-fA-F]{40}", key)
+    matches(descriptor["sourceCommit"], r"[0-9a-fA-F]{40}", "sourceCommit")
+    # Recognizers have no decoder source; importers pin one.
+    require(descriptor["decoderCommit"] == "" if recognizer else
+            re.fullmatch(r"[0-9a-fA-F]{40}", descriptor["decoderCommit"]), "invalid decoderCommit")
 
 
 def verify_manifest(zip_file, addon, release, legacy):
     addon_id = addon["id"]
-    executable = f"goodtype-{addon_id}-import.exe"
-    root = f"goodtype-{addon_id}-importer-{release['version']}-windows-x64/"
+    recognizer = addon_id in RECOGNIZERS
+    executable = "goodtype-math-recognize.exe" if recognizer else f"goodtype-{addon_id}-import.exe"
+    kind = "recognizer" if recognizer else "importer"
+    root = f"goodtype-{addon_id}-{kind}-{release['version']}-windows-x64/"
     with zipfile.ZipFile(zip_file) as archive:
         files = archive.infolist()
         require(len(files) <= 20_000 and sum(f.file_size for f in files) <= ARCHIVE_LIMIT,
@@ -119,20 +124,22 @@ def verify_manifest(zip_file, addon, release, legacy):
             and manifest["id"] == addon_id and manifest["version"] == release["version"]
             and manifest["apiVersion"] == release["api"] == "goodtype-api 0.1"
             and manifest["target"] == release["target"] and manifest["entrypoint"] == executable
-            and manifest["transport"] == "legacy-import-cli", "manifest identity mismatch")
-    approved = {"picked-import-file", "publish-import-batch"}
+            and manifest["transport"] == ("stdio-jsonrpc" if recognizer else "legacy-import-cli"),
+            "manifest identity mismatch")
+    approved = {"selected-ink", "add-page-objects"} if recognizer else {"picked-import-file", "publish-import-batch"}
     if addon_id == "goodnotes":
         approved.add("derived-import-artwork")
     permissions = manifest["permissions"]
     require(type(permissions) is list and set(permissions) <= approved
             and len(permissions) == len(set(permissions)), "invalid importer permissions")
+    require(not recognizer or set(permissions) == approved, "recognizer permissions mismatch")
     require(manifest["settings"] == [], "settings are reserved in API 0.1")
     commands = manifest["commands"]
-    require(type(commands) is list and len(commands) == 1, "expected one importer command")
+    require(type(commands) is list and len(commands) == 1, f"expected one {kind} command")
     command = commands[0]
     fields(command, "id label surface")
-    require(command["id"] == "import-notebooks" and command["surface"] == "library-import",
-            "invalid importer command")
+    expected = ("recognize-math", "ink-selection") if recognizer else ("import-notebooks", "library-import")
+    require((command["id"], command["surface"]) == expected, f"invalid {kind} command")
     matches(command["label"], ID, "command label", 48)
     strings = manifest["strings"]
     fields(strings, "en de")
@@ -150,7 +157,7 @@ def verify_releases(index):
     for addon in index["addons"]:
         for release in addon["versions"]:
             expected_hash = release["sha256"].lower()
-            legacy = expected_hash == CATALOG[addon["id"]][2]
+            legacy = expected_hash == CATALOG[addon["id"]][2]  # None never matches a SHA-256
             with tempfile.TemporaryFile() as archive:
                 size, digest = download(release["url"], release["size"], archive)
                 require(size == release["size"] and digest == expected_hash,
