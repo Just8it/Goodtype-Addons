@@ -23,7 +23,14 @@ CATALOG = {
         "73bce698801a59fe2d423fd9c6dba8687fe3b92f60bb9f27499e7242c2336c3b",
         "a09f7899eef1280819a7da0b12e1355a76e2a71c774e738b0945e07bac9a63dc",
     ),
+    # Recognizer addons have no legacy archive: every release needs a signed descriptor.
+    "math": (
+        "/Just8it/Goodtype-ink-recognition",
+        "c9beeeed664e245b76771380ed37b66c9405d445e2880af9356d13a384955581",
+        None,
+    ),
 }
+RECOGNIZERS = {"math"}
 
 
 def require(condition, message):
