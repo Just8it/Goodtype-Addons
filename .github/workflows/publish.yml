@@ -30,12 +30,30 @@ jobs:
         with:
           python-version: '3.14.8'
       - run: python scripts/validate_index.py --self-test --network
+      - name: Check whether the registry can switch to org URLs
+        id: migration
+        run: |
+          python - <<'PY'
+          import os, sys
+          from pathlib import Path
+          sys.path.insert(0, 'scripts')
+          from validate_index import is_transferred_asset, validate
+          index = validate(Path('index.json').read_bytes())
+          pending = any(is_transferred_asset(addon['id'], release)
+                        for addon in index['addons'] for release in addon['versions'])
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              print(f"ready={str(not pending).lower()}", file=output)
+          if pending:
+              print('Keeping the current published index until org releases replace the transferred assets.')
+          PY
       - name: Sign and verify the next index
+        if: steps.migration.outputs.ready == 'true'
         env:
           REGISTRY_SIGNING_KEY: ${{ secrets.REGISTRY_SIGNING_KEY }}
           GH_TOKEN: ${{ github.token }}
         run: python scripts/sign_index.py
       - name: Publish the signed assets
+        if: steps.migration.outputs.ready == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

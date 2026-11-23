@@ -10,7 +10,7 @@ from urllib.request import HTTPRedirectHandler, build_opener
 import zipfile
 
 from validate_index import (
-    ARCHIVE_LIMIT, CATALOG, ID, INDEX_LIMIT, RECOGNIZERS, fields, matches, parse, require,
+    ARCHIVE_LIMIT, CATALOG, CONTENT_PACKS, ID, RECOGNIZERS, fields, is_transferred_asset, matches, parse, require,
 )
 
 ASSET_HOSTS = {
@@ -64,10 +64,18 @@ def verify_signature(data, signature, public_key):
         ], check=True, stdout=subprocess.DEVNULL)
 
 
-def verify_descriptor(addon, release, legacy):
-    base, filename = release["url"].rsplit("/", 1)
-    recognizer = addon["id"] in RECOGNIZERS
-    descriptor_url = f"{base}/{'recognizer' if recognizer else 'importer'}-update.json"
+def package_kind(addon_id):
+    if addon_id in CONTENT_PACKS:
+        return "content"
+    if addon_id in RECOGNIZERS:
+        return "recognizer"
+    return "addon" if addon_id == "connectors" else "importer"
+
+
+def verify_descriptor(addon, release, legacy, asset_url):
+    base, filename = asset_url.rsplit("/", 1)
+    kind = package_kind(addon["id"])
+    descriptor_url = f"{base}/{kind}-update.json"
     try:
         data = download(descriptor_url, MANIFEST_LIMIT)
     except HTTPError as error:
@@ -94,7 +102,7 @@ def verify_descriptor(addon, release, legacy):
             and archive["url"] == release["url"], "descriptor does not match indexed release")
     matches(descriptor["sourceCommit"], r"[0-9a-fA-F]{40}", "sourceCommit")
     # Recognizers have no decoder source; importers pin one.
-    require(descriptor["decoderCommit"] == "" if recognizer else
+    require(descriptor["decoderCommit"] == "" if kind != "importer" else
             re.fullmatch(r"[0-9a-fA-F]{40}", descriptor["decoderCommit"]), "invalid decoderCommit")
 
 
@@ -102,8 +110,10 @@ def verify_manifest(zip_file, addon, release, legacy):
     addon_id = addon["id"]
     recognizer = addon_id in RECOGNIZERS
     executable = "goodtype-math-recognize.exe" if recognizer else f"goodtype-{addon_id}-import.exe"
-    kind = "recognizer" if recognizer else "importer"
-    root = f"goodtype-{addon_id}-{kind}-{release['version']}-windows-x64/"
+    kind = package_kind(addon_id)
+    if kind == "addon":
+        executable = "goodtype-connectors.exe"
+    root = release["url"].rsplit("/", 1)[1].removesuffix(".zip") + "/"
     with zipfile.ZipFile(zip_file) as archive:
         files = archive.infolist()
         require(len(files) <= 20_000 and sum(f.file_size for f in files) <= ARCHIVE_LIMIT,
@@ -116,7 +126,21 @@ def verify_manifest(zip_file, addon, release, legacy):
         require(len(manifests) == 1 and manifests[0].file_size <= MANIFEST_LIMIT,
                 "expected one bounded goodtype-addon.json")
         manifest = parse(archive.read(manifests[0]), MANIFEST_LIMIT)
-        require(archive.namelist().count(root + executable) == 1, "catalog executable missing")
+        if kind != "content":
+            require(archive.namelist().count(root + executable) == 1, "catalog executable missing")
+
+    if kind in {"content", "addon"}:
+        require(type(manifest["manifestVersion"]) is int and manifest["manifestVersion"] == 1
+                and manifest["id"] == addon_id and manifest["version"] == release["version"]
+                and manifest["apiVersion"] == release["api"] == "goodtype-api 0.1"
+                and manifest["target"] == release["target"], "manifest identity mismatch")
+        if kind == "content":
+            require(manifest["transport"] == "content" and manifest["permissions"] == []
+                    and "entrypoint" not in manifest, "content pack must be declarative")
+        else:
+            require(manifest["transport"] == "stdio-jsonrpc" and manifest["entrypoint"] == executable,
+                    "connector executable identity mismatch")
+        return
 
     fields(manifest, "manifestVersion id version apiVersion target entrypoint transport "
            "permissions commands settings strings")
@@ -158,10 +182,14 @@ def verify_releases(index):
         for release in addon["versions"]:
             expected_hash = release["sha256"].lower()
             legacy = expected_hash == CATALOG[addon["id"]][2]  # None never matches a SHA-256
+            asset_url = release["url"]
+            if is_transferred_asset(addon["id"], release):
+                suffix = asset_url.split("/releases/download/", 1)[1]
+                asset_url = f"https://github.com{addon['repository']}/releases/download/{suffix}"
             with tempfile.TemporaryFile() as archive:
-                size, digest = download(release["url"], release["size"], archive)
+                size, digest = download(asset_url, release["size"], archive)
                 require(size == release["size"] and digest == expected_hash,
                         f"archive size or SHA-256 mismatch: {release['url']}")
-                verify_descriptor(addon, release, legacy)
+                verify_descriptor(addon, release, legacy, asset_url)
                 verify_manifest(archive, addon, release, legacy)
             print(f"Verified {addon['id']} {release['version']} release assets")
