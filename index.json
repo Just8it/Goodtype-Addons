@@ -6,7 +6,7 @@
   "addons": [
     {
       "id": "goodnotes",
-      "repository": "/Just8it/Goodtype-Goodnodes-importer",
+      "repository": "/goodtype-notes/Goodtype-Goodnotes-Importer",
       "publicKey": "428cc68f6d0b38eae74dcb211e4877c6eb51548daabf24de64a185885c825b3c",
       "versions": [
         {
@@ -21,7 +21,7 @@
     },
     {
       "id": "onenote",
-      "repository": "/Just8it/Goodtype-OneNote-Importer",
+      "repository": "/goodtype-notes/Goodtype-OneNote-Importer",
       "publicKey": "73bce698801a59fe2d423fd9c6dba8687fe3b92f60bb9f27499e7242c2336c3b",
       "versions": [
         {
@@ -36,7 +36,7 @@
     },
     {
       "id": "math",
-      "repository": "/Just8it/Goodtype-ink-recognition",
+      "repository": "/goodtype-notes/Goodtype-Math-Recognition",
       "publicKey": "c9beeeed664e245b76771380ed37b66c9405d445e2880af9356d13a384955581",
       "versions": [
         {

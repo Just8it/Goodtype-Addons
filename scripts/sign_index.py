@@ -13,7 +13,7 @@ from urllib.request import Request, urlopen
 from validate_index import INDEX_LIMIT, parse, require, validate
 from verify_releases import download, verify_signature
 
-REPO = "Just8it/Goodtype-Addons"
+REPO = os.environ.get("GITHUB_REPOSITORY", "goodtype-notes/Goodtype-Addons")
 PUBLIC_KEY = Path(__file__).resolve().parents[1] / "registry-public-key.txt"
 
 
@@ -41,7 +41,8 @@ def latest_sequence(public_key):
     url = f"https://github.com/{REPO}/releases/download/{tag}/index.json"
     data = download(url, INDEX_LIMIT)
     verify_signature(data, download(url + ".sig", 64), public_key)
-    index = validate(data)
+    # A previously signed snapshot can predate the current catalog.
+    index = validate(data, historical=True)
     require(tag == f"index-{index['sequence']}", "latest tag and sequence disagree")
     return index["sequence"]
 
@@ -83,7 +84,7 @@ def main():
         data = args.verify.read_bytes()
         require(len(data) <= INDEX_LIMIT, "index exceeds byte limit")
         verify_signature(data, args.verify.with_suffix(".json.sig").read_bytes(), public_key)
-        index = validate(data)
+        index = validate(data, historical=True)
         print(f"Verified registry signature (sequence {index['sequence']})")
         return
 
