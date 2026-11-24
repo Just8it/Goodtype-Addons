@@ -10,12 +10,12 @@
       "publicKey": "428cc68f6d0b38eae74dcb211e4877c6eb51548daabf24de64a185885c825b3c",
       "versions": [
         {
-          "version": "0.1.1",
+          "version": "0.1.3",
           "api": "goodtype-api 0.1",
           "target": "x86_64-pc-windows-msvc",
-          "url": "https://github.com/Just8it/Goodtype-Goodnodes-importer/releases/download/v0.1.1/goodtype-goodnotes-importer-0.1.1-windows-x64.zip",
-          "size": 14881982,
-          "sha256": "ef8bfd150626eab885cf1479131e5945fcfd2a9da4152aab3a03311507db5742"
+          "url": "https://github.com/goodtype-notes/Goodtype-Goodnotes-Importer/releases/download/v0.1.3/goodtype-goodnotes-importer-0.1.3-windows-x64.zip",
+          "size": 14881198,
+          "sha256": "4da82ec75d763973c7096aad4f275eff9befc981735cf2bb75131bcc5a99fe7a"
         }
       ]
     },
@@ -25,12 +25,12 @@
       "publicKey": "73bce698801a59fe2d423fd9c6dba8687fe3b92f60bb9f27499e7242c2336c3b",
       "versions": [
         {
-          "version": "0.1.0",
+          "version": "0.1.2",
           "api": "goodtype-api 0.1",
           "target": "x86_64-pc-windows-msvc",
-          "url": "https://github.com/Just8it/Goodtype-OneNote-Importer/releases/download/v0.1.0/goodtype-onenote-importer-0.1.0-windows-x64.zip",
-          "size": 1927930,
-          "sha256": "a09f7899eef1280819a7da0b12e1355a76e2a71c774e738b0945e07bac9a63dc"
+          "url": "https://github.com/goodtype-notes/Goodtype-OneNote-Importer/releases/download/v0.1.2/goodtype-onenote-importer-0.1.2-windows-x64.zip",
+          "size": 1928459,
+          "sha256": "b15177638acfccff43b18cc677f0c17b2e44dcd737d7c5a69d71c5f2a7d2be96"
         }
       ]
     },
@@ -40,12 +40,57 @@
       "publicKey": "c9beeeed664e245b76771380ed37b66c9405d445e2880af9356d13a384955581",
       "versions": [
         {
+          "version": "0.1.1",
+          "api": "goodtype-api 0.1",
+          "target": "x86_64-pc-windows-msvc",
+          "url": "https://github.com/goodtype-notes/Goodtype-Math-Recognition/releases/download/v0.1.1/goodtype-math-recognizer-0.1.1-windows-x64.zip",
+          "size": 337200375,
+          "sha256": "4179a954ac159aa19aa0065710a12866e5e80299057d62e80dc0c8311af1b7ec"
+        }
+      ]
+    },
+    {
+      "id": "connectors",
+      "repository": "/goodtype-notes/Goodtype-Connectors",
+      "publicKey": "210597a7b6ad9c6d9ceb5144d8efdff2a1b387352ae2f70791924a437fdfb4b7",
+      "versions": [
+        {
           "version": "0.1.0",
           "api": "goodtype-api 0.1",
           "target": "x86_64-pc-windows-msvc",
-          "url": "https://github.com/Just8it/Goodtype-ink-recognition/releases/download/v0.1.0/goodtype-math-recognizer-0.1.0-windows-x64.zip",
-          "size": 337200465,
-          "sha256": "415bc6a86c6e1340d0a04b7876cdaca9089cbcaa9ceefd899c08386043d02e38"
+          "url": "https://github.com/goodtype-notes/Goodtype-Connectors/releases/download/v0.1.0/goodtype-connectors-0.1.0-windows-x64.zip",
+          "size": 279694,
+          "sha256": "b86078763692cde412fec45839783e234f736f918ce4a52f3ebde39f32587455"
+        }
+      ]
+    },
+    {
+      "id": "engineering-shapes",
+      "repository": "/goodtype-notes/Goodtype-Engineering-Shapes",
+      "publicKey": "3cfbfe38cee6bbc1da2c63caff5b8ef1f0f76db6df0c1c0f1763728781b782d9",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "api": "goodtype-api 0.1",
+          "target": "x86_64-pc-windows-msvc",
+          "url": "https://github.com/goodtype-notes/Goodtype-Engineering-Shapes/releases/download/v0.1.0/goodtype-engineering-shapes-0.1.0-windows-x64.zip",
+          "size": 162348,
+          "sha256": "89e7bf9599d704fc0f716e2b19ffa6a1be8020d47e4b9c55b7565ae2c96b6b27"
+        }
+      ]
+    },
+    {
+      "id": "study-templates",
+      "repository": "/goodtype-notes/Goodtype-Study-Templates",
+      "publicKey": "3c7b9d349406055325ee05156505328d763e3c684cdbc36d1c361a59c92a7acd",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "api": "goodtype-api 0.1",
+          "target": "x86_64-pc-windows-msvc",
+          "url": "https://github.com/goodtype-notes/Goodtype-Study-Templates/releases/download/v0.1.0/goodtype-study-templates-0.1.0-windows-x64.zip",
+          "size": 8948,
+          "sha256": "d29a6d1ab750d658022c888730d1f14269ca49a3695ed519cfd5a1d500866217"
         }
       ]
     }
