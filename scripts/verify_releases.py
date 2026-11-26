@@ -10,7 +10,7 @@ from urllib.request import HTTPRedirectHandler, build_opener
 import zipfile
 
 from validate_index import (
-    ARCHIVE_LIMIT, CATALOG, CONTENT_PACKS, ID, RECOGNIZERS, fields, is_transferred_asset, matches, parse, require,
+    ARCHIVE_LIMIT, CATALOG, CONTENT_PACKS, ID, RECOGNIZERS, fields, is_transferred_asset, matches, parse, require, minimum_version, version_tuple,
 )
 
 ASSET_HOSTS = {
@@ -106,7 +106,7 @@ def verify_descriptor(addon, release, legacy, asset_url):
             re.fullmatch(r"[0-9a-fA-F]{40}", descriptor["decoderCommit"]), "invalid decoderCommit")
 
 
-def verify_manifest(zip_file, addon, release, legacy):
+def verify_manifest(zip_file, addon, release, legacy, populate=False):
     addon_id = addon["id"]
     recognizer = addon_id in RECOGNIZERS
     executable = "goodtype-math-recognize.exe" if recognizer else f"goodtype-{addon_id}-import.exe"
@@ -129,6 +129,18 @@ def verify_manifest(zip_file, addon, release, legacy):
         if kind != "content":
             require(archive.namelist().count(root + executable) == 1, "catalog executable missing")
 
+    requirements = manifest.get("requires", [])
+    minimum = minimum_version(requirements)
+    if populate:
+        if requirements:
+            release["requires"] = requirements
+            release["minGoodtype"] = minimum
+    else:
+        require(release.get("requires", []) == requirements, "indexed requirements differ from manifest")
+        require(minimum is None or ("minGoodtype" in release and
+                version_tuple(release["minGoodtype"]) >= version_tuple(minimum)),
+                "indexed minimum is below manifest requirements")
+
     if kind in {"content", "addon"}:
         require(type(manifest["manifestVersion"]) is int and manifest["manifestVersion"] == 1
                 and manifest["id"] == addon_id and manifest["version"] == release["version"]
@@ -143,7 +155,7 @@ def verify_manifest(zip_file, addon, release, legacy):
         return
 
     fields(manifest, "manifestVersion id version apiVersion target entrypoint transport "
-           "permissions commands settings strings")
+           "permissions commands settings strings" + (" requires" if "requires" in manifest else ""))
     require(type(manifest["manifestVersion"]) is int and manifest["manifestVersion"] == 1
             and manifest["id"] == addon_id and manifest["version"] == release["version"]
             and manifest["apiVersion"] == release["api"] == "goodtype-api 0.1"
@@ -177,7 +189,7 @@ def verify_manifest(zip_file, addon, release, legacy):
     require(strings["en"].keys() == strings["de"].keys(), "English and German keys differ")
 
 
-def verify_releases(index):
+def verify_releases(index, *, populate=False):
     for addon in index["addons"]:
         for release in addon["versions"]:
             expected_hash = release["sha256"].lower()
@@ -191,5 +203,5 @@ def verify_releases(index):
                 require(size == release["size"] and digest == expected_hash,
                         f"archive size or SHA-256 mismatch: {release['url']}")
                 verify_descriptor(addon, release, legacy, asset_url)
-                verify_manifest(archive, addon, release, legacy)
+                verify_manifest(archive, addon, release, legacy, populate)
             print(f"Verified {addon['id']} {release['version']} release assets")

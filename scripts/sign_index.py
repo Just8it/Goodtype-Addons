@@ -10,7 +10,7 @@ import tempfile
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
-from validate_index import INDEX_LIMIT, parse, require, validate
+from validate_index import INDEX_LIMIT, parse, require, validate, outputs, encode
 from verify_releases import download, verify_signature
 
 REPO = os.environ.get("GITHUB_REPOSITORY", "goodtype-notes/Goodtype-Addons")
@@ -90,10 +90,11 @@ def main():
 
     data = prepare(args.source.read_bytes(), latest_sequence(public_key))
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    index_file = args.output_dir / "index.json"
-    index_file.write_bytes(data)
-    if not args.prepare_only:
-        sign(index_file, public_key)
+    for name, index in zip(("index.json", "index-v2.json"), outputs(validate(data))):
+        index_file = args.output_dir / name
+        index_file.write_bytes(encode(index))
+        if not args.prepare_only:
+            sign(index_file, public_key)
     print(f"Prepared registry index {validate(data)['sequence']}")
 
 

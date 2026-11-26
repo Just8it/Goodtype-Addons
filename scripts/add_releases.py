@@ -6,7 +6,7 @@ from pathlib import Path
 import subprocess
 from tempfile import NamedTemporaryFile
 
-from validate_index import CATALOG, HEX, INDEX_LIMIT, TARGET, is_transferred_asset, matches, parse, require, validate
+from validate_index import CATALOG, HEX, INDEX_LIMIT, TARGET, is_transferred_asset, matches, parse, require, validate, version_tuple
 from verify_releases import verify_releases
 
 ED25519_SPKI = bytes.fromhex("302a300506032b6570032100")
@@ -53,7 +53,10 @@ def published_version(addon_id, version):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("releases", nargs="+", metavar="ADDON=VERSION")
+    parser.add_argument("--min-goodtype", help="Explicit minimum for requested releases; may only raise the computed minimum")
     args = parser.parse_args()
+    if args.min_goodtype:
+        matches(args.min_goodtype, VERSION, "minimum Goodtype version", 32)
     requested = []
     for spec in args.releases:
         addon_id, _, version = spec.partition("=")
@@ -65,10 +68,13 @@ def main():
     path = Path(__file__).resolve().parents[1] / "index.json"
     index = validate(path.read_bytes())
     addons = {addon["id"]: addon for addon in index["addons"]}
-    selected = []
     for addon_id, version in requested:
         published, entry = published_version(addon_id, version)
-        selected.append(published)
+        verify_releases({"addons": [published]}, populate=True)
+        if args.min_goodtype:
+            require(version_tuple(args.min_goodtype) >= version_tuple(entry.get("minGoodtype", "0.0.0")),
+                    "override cannot lower the feature minimum")
+            entry["minGoodtype"] = args.min_goodtype
         if addon_id not in addons:
             addons[addon_id] = {**published, "versions": []}
             index["addons"].append(addons[addon_id])
@@ -83,7 +89,6 @@ def main():
 
     data = (json.dumps(index, indent=2) + "\n").encode("utf-8")
     validate(data)
-    verify_releases({"addons": selected})
     with NamedTemporaryFile(dir=path.parent, delete=False) as temporary:
         temp_path = Path(temporary.name)
     try:
