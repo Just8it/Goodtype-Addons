@@ -129,6 +129,8 @@ def verify_manifest(zip_file, addon, release, legacy, populate=False):
         if kind != "content":
             require(archive.namelist().count(root + executable) == 1, "catalog executable missing")
 
+    # Released hosts reject the field itself, so an empty list would reach them through format 1.
+    require("requires" not in manifest or manifest["requires"], "an empty requires list must be omitted")
     requirements = manifest.get("requires", [])
     minimum = minimum_version(requirements)
     if populate:

@@ -19,6 +19,7 @@ def run(source):
     fixture = copy.deepcopy(source)
     fixture["format"] = 2
     addon = fixture["addons"][0]
+    addon["versions"] = addon["versions"][:1]  # One release, so the whole addon must leave format 1.
     release = addon["versions"][0]
     release["requires"] = ["end-caps", "group-stretch", "path-edit-v0"]
     release["minGoodtype"] = minimum_version(release["requires"])
@@ -28,6 +29,13 @@ def run(source):
     require(all("requires" not in r and "minGoodtype" not in r
                 for a in legacy["addons"] for r in a["versions"]), "new fields leaked")
     require(modern == fixture, "format 2 lost releases")
+    mixed = copy.deepcopy(fixture)
+    plain = copy.deepcopy(source["addons"][0]["versions"][0])
+    plain["url"] = plain["url"].replace(plain["version"], "0.0.1")
+    plain["version"] = "0.0.1"
+    mixed["addons"][0]["versions"].append(plain)
+    kept = next(a for a in outputs(mixed)[0]["addons"] if a["id"] == addon["id"])
+    require([r["version"] for r in kept["versions"]] == ["0.0.1"], "mixed addon lost its plain release")
     for features in (["future-feature"], ["end-caps", "end-caps"], ["bad_feature"], ["end-caps"] * 17):
         try:
             minimum_version(features)
@@ -59,6 +67,16 @@ def run(source):
     verify_manifest(archive, pack, entry, False, populate=True)
     require(entry["requires"] == ["end-caps"] and entry["minGoodtype"] == "0.3.10",
             "manifest extraction failed")
+    empty = dict(manifest, requires=[])
+    empty_archive = io.BytesIO()
+    with zipfile.ZipFile(empty_archive, "w") as z:
+        z.writestr(root + "goodtype-addon.json", json.dumps(empty))
+    try:
+        verify_manifest(empty_archive, pack, copy.deepcopy(pack["versions"][0]), False, populate=True)
+    except ValueError:
+        pass
+    else:
+        raise ValueError("empty requires accepted")
     entry.pop("requires")
     try:
         verify_manifest(archive, pack, entry, False)
