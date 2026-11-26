@@ -58,6 +58,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           tag="index-$(python -c 'import json; print(json.load(open("dist/index.json"))["sequence"])')"
-          gh release create "$tag" dist/index.json dist/index.json.sig \
+          gh release create "$tag" dist/index.json dist/index.json.sig dist/index-v2.json dist/index-v2.json.sig \
             --target "$(git rev-parse HEAD)" --latest --title "Goodtype Addon Registry $tag" \
             --notes "Signed first-party Goodtype addon registry snapshot."

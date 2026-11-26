@@ -1,4 +1,4 @@
-"""Validate index format 1 and, with --network, verify the listed releases."""
+"""Validate registry source and published indexes and, with --network, verify the listed releases."""
 import argparse
 import copy
 from datetime import datetime
@@ -115,10 +115,51 @@ def is_transferred_asset(addon_id, release):
     )
 
 
+FEATURE_VERSIONS = parse((Path(__file__).resolve().parents[1] / "feature-versions.json").read_bytes())
+
+
+def version_tuple(value):
+    return tuple(map(int, value.split(".")))
+
+
+def validate_requirements(features):
+    require(type(features) is list and len(features) <= 16, "invalid requires")
+    for feature in features:
+        matches(feature, ID, "feature", 48)
+        require(feature in FEATURE_VERSIONS, f"unknown feature: {feature}")
+    require(len(set(features)) == len(features), "duplicate requirement")
+
+
+def minimum_version(features):
+    validate_requirements(features)
+    return max((FEATURE_VERSIONS[f] for f in features), key=version_tuple, default=None)
+
+
+def encode(index):
+    return (json.dumps(index, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode("utf-8")
+
+
+def outputs(index):
+    """Derive both wire formats from one validated source."""
+    modern = copy.deepcopy(index)
+    modern["format"] = 2
+    legacy = copy.deepcopy(index)
+    legacy["format"] = 1
+    legacy["addons"] = []
+    for addon in index["addons"]:
+        versions = [{k: v for k, v in r.items() if k not in {"requires", "minGoodtype"}}
+                    for r in addon["versions"] if not r.get("requires") and "minGoodtype" not in r]
+        if versions:
+            legacy["addons"].append({**addon, "versions": versions})
+    for result in (legacy, modern):
+        validate(encode(result))
+    return legacy, modern
+
+
 def validate(data, previous=None, *, historical=False):
     index = parse(data)
     fields(index, "format sequence issued expires addons")
-    require(type(index["format"]) is int and index["format"] == 1, "invalid format")
+    require(type(index["format"]) is int and index["format"] in (1, 2), "invalid format")
     sequence = index["sequence"]
     require(type(sequence) is int and 0 <= sequence <= MAX_SEQUENCE, "invalid sequence")
     require(previous is None or sequence > previous, "sequence must increase")
@@ -143,7 +184,20 @@ def validate(data, previous=None, *, historical=False):
         require(type(addon["versions"]) is list, "versions must be an array")
         versions = set()
         for release in addon["versions"]:
-            fields(release, "version api target url size sha256")
+            base = "version api target url size sha256"
+            if index["format"] == 2:
+                require(type(release) is dict and set(base.split()) <= release.keys()
+                        and release.keys() <= set(base.split()) | {"requires", "minGoodtype"},
+                        "invalid format-2 release fields")
+                validate_requirements(release.get("requires", []))
+                minimum = minimum_version(release.get("requires", []))
+                if "minGoodtype" in release:
+                    matches(release["minGoodtype"], r"[0-9]+\.[0-9]+\.[0-9]+", "minGoodtype", 32)
+                require(minimum is None or ("minGoodtype" in release and
+                        version_tuple(release["minGoodtype"]) >= version_tuple(minimum)),
+                        "minGoodtype is below the feature minimum")
+            else:
+                fields(release, base)
             version = release["version"]
             matches(version, r"[0-9]+\.[0-9]+\.[0-9]+", "version", 32)
             require(version not in versions, f"duplicate version: {addon_id} {version}")
@@ -191,7 +245,9 @@ def self_test(data):
         pass
     else:
         raise ValueError("unchanged published sequence was accepted")
-    print("Negative fixtures passed")
+    from registry_self_test import run
+    run(index)
+    print("Negative fixtures and dual-index tests passed")
 
 
 def main():
