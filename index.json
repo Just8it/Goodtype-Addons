@@ -61,6 +61,19 @@
           "url": "https://github.com/goodtype-notes/Goodtype-Connectors/releases/download/v0.1.0/goodtype-connectors-0.1.0-windows-x64.zip",
           "size": 279694,
           "sha256": "b86078763692cde412fec45839783e234f736f918ce4a52f3ebde39f32587455"
+        },
+        {
+          "version": "0.2.0",
+          "api": "goodtype-api 0.1",
+          "target": "x86_64-pc-windows-msvc",
+          "url": "https://github.com/goodtype-notes/Goodtype-Connectors/releases/download/v0.2.0/goodtype-connectors-0.2.0-windows-x64.zip",
+          "size": 301377,
+          "sha256": "0cfd7dbe944db52dd889b06de2a2f0c7f3dcdcf9c67b9c668cbb54fe1ed493fd",
+          "requires": [
+            "end-caps",
+            "path-edit-v0"
+          ],
+          "minGoodtype": "0.3.10"
         }
       ]
     },
@@ -76,6 +89,19 @@
           "url": "https://github.com/goodtype-notes/Goodtype-Engineering-Shapes/releases/download/v0.1.0/goodtype-engineering-shapes-0.1.0-windows-x64.zip",
           "size": 162348,
           "sha256": "89e7bf9599d704fc0f716e2b19ffa6a1be8020d47e4b9c55b7565ae2c96b6b27"
+        },
+        {
+          "version": "0.2.0",
+          "api": "goodtype-api 0.1",
+          "target": "x86_64-pc-windows-msvc",
+          "url": "https://github.com/goodtype-notes/Goodtype-Engineering-Shapes/releases/download/v0.2.0/goodtype-engineering-shapes-0.2.0-windows-x64.zip",
+          "size": 159961,
+          "sha256": "4c61077ac363ca815adac09ecbe02bf95c6c195742a4796e2c6003bda4cfe092",
+          "requires": [
+            "end-caps",
+            "group-stretch"
+          ],
+          "minGoodtype": "0.3.10"
         }
       ]
     },
