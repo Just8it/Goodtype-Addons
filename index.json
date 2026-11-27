@@ -87,6 +87,19 @@
             "path-edit-v0"
           ],
           "minGoodtype": "0.3.10"
+        },
+        {
+          "version": "0.2.2",
+          "api": "goodtype-api 0.1",
+          "target": "x86_64-pc-windows-msvc",
+          "url": "https://github.com/goodtype-notes/Goodtype-Connectors/releases/download/v0.2.2/goodtype-connectors-0.2.2-windows-x64.zip",
+          "size": 301843,
+          "sha256": "d59f72341970a54407a582cf777de124de559683e10d5decd7bfb358ea164bf3",
+          "requires": [
+            "end-caps",
+            "path-edit-v0"
+          ],
+          "minGoodtype": "0.3.10"
         }
       ]
     },
