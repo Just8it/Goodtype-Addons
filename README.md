@@ -30,8 +30,8 @@ The format-2 asset includes every release and permits optional `requires` and
 `minGoodtype` fields alongside the existing version, api, target, url, size and sha256.
 
 [feature-versions.json](feature-versions.json) maps features to the first Goodtype
-version that shipped them: `end-caps`, `group-stretch` and `path-edit-v0` currently
-all require `0.3.10`. `add_releases.py` reads requirements from the verified package
+version that shipped them: `end-caps`, `group-stretch` and `path-edit-v0` require
+`0.3.10`, and `scoped-reads-v0` requires `0.3.22`. `add_releases.py` reads requirements from the verified package
 manifest and computes the highest required version. Unknown features are rejected
 until the table is updated. `--min-goodtype X.Y.Z` optionally raises the minimum
 for the requested releases; it cannot lower it. Network validation checks that
